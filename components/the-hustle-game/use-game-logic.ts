@@ -15,7 +15,6 @@ export function useGameLogic() {
   const [winner, setWinner] = useState<string | null>(null)
 
   // Initialize game grid
-  
   const initializeGame = useCallback(() => {
     const newCards: GameCard[] = []
     const totalCards = gridSize * gridSize
