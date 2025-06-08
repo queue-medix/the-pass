@@ -63,10 +63,10 @@ export const GameCard: React.FC<GameCardProps> = ({
       // Different rotations based on game state
       if (gameState === "lifting") {
         // Card lifts up, still showing back, faces user directly
-        rot = [Math.PI * 0.47, 0, 0] // Face user, back side visible (corrected orientation)
+        rot = [Math.PI * 0.47, 0, 0] // Face user, back side visible
       } else if (gameState === "revealing" || gameState === "showing" || gameState === "returning") {
         // Card flips to show front side, still facing user
-        rot = [Math.PI * 0.47, 0, Math.PI] // Face user, front side visible (corrected orientation)
+        rot = [Math.PI * 0.47, 0, Math.PI] // Face user, front side visible
       }
 
       // Scale up when lifted
@@ -125,29 +125,29 @@ export const GameCard: React.FC<GameCardProps> = ({
 
   // Create materials for different sides of the card
   const materials = useMemo(() => {
-    // Front material (PASS = gold, DUD = red)
+    // Front material (PASS = bright gold, DUD = red) - Match screenshot colors
     const frontMaterial = new THREE.MeshStandardMaterial({
-      color: card.type === "PASS" ? "#fbbf24" : "#dc2626",
+      color: card.type === "PASS" ? "#FFD700" : "#dc2626", // Bright gold for PASS
       roughness: card.type === "PASS" ? 0.1 : 0.3,
-      metalness: card.type === "PASS" ? 0.9 : 0.1,
-      emissive: card.type === "PASS" ? "#f59e0b" : "#991b1b",
-      emissiveIntensity: card.type === "PASS" ? 0.2 : 0.1,
+      metalness: card.type === "PASS" ? 0.8 : 0.1,
+      emissive: card.type === "PASS" ? "#FFA500" : "#991b1b", // Orange glow for PASS
+      emissiveIntensity: card.type === "PASS" ? 0.3 : 0.1,
     })
 
-    // Back material with pattern
+    // Back material with pattern/image - Purple tint to match screenshot
     const backMaterial = new THREE.MeshStandardMaterial({
-      color: cardBackTexture ? "#ffffff" : "#1e1b4b",
+      color: cardBackTexture ? "#E6E6FA" : "#4C1D95", // Light purple tint
       roughness: 0.4,
       metalness: 0.2,
       map: cardBackTexture,
-      emissive: isSelected ? "#7c3aed" : "#000000",
-      emissiveIntensity: isSelected ? 0.3 : 0,
+      emissive: isSelected ? "#8B5CF6" : "#4C1D95", // Purple glow
+      emissiveIntensity: isSelected ? 0.4 : 0.2,
     })
 
-    // If no texture, create a pattern using emissive
+    // If no texture, create a purple pattern
     if (!cardBackTexture) {
-      backMaterial.emissive = new THREE.Color("#4c1d95")
-      backMaterial.emissiveIntensity = isSelected ? 0.5 : 0.2
+      backMaterial.emissive = new THREE.Color("#8B5CF6")
+      backMaterial.emissiveIntensity = isSelected ? 0.6 : 0.3
     }
 
     // Return array of materials for each face of the box
@@ -156,8 +156,8 @@ export const GameCard: React.FC<GameCardProps> = ({
       backMaterial, // left
       backMaterial, // top
       backMaterial, // bottom
-      frontMaterial, // front
-      backMaterial, // back
+      frontMaterial, // front (DUD/PASS side - plain color)
+      backMaterial, // back (image/pattern side)
     ]
   }, [card.type, cardBackTexture, isSelected])
 
@@ -174,17 +174,17 @@ export const GameCard: React.FC<GameCardProps> = ({
         ))}
       </mesh>
 
-      {/* Card Text - Front Side (when flipped) - Always show DUD/PASS text when card is flipped */}
+      {/* Card Text - Front Side (DUD/PASS) - Written on the card surface */}
       {showingFront && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <Text
             fontSize={isSelected ? 0.4 : 0.25}
             font="/fonts/Geist-Bold.ttf"
-            color={card.type === "PASS" ? "#1f2937" : "#ffffff"}
+            color={card.type === "PASS" ? "#006400" : "#ffffff"} // Dark green for PASS (like screenshot)
             anchorX="center"
             anchorY="middle"
             outlineWidth={0.02}
-            outlineColor={card.type === "PASS" ? "#92400e" : "#000000"}
+            outlineColor={card.type === "PASS" ? "#004000" : "#000000"}
             fontWeight="bold"
           >
             {card.type}
@@ -192,44 +192,44 @@ export const GameCard: React.FC<GameCardProps> = ({
         </group>
       )}
 
-      {/* Card Number - Back Side (when not flipped) */}
+      {/* Card Number - Back Side (with image/pattern) - Written on the card surface */}
       {!showingFront && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <Text
             fontSize={isSelected ? 0.2 : 0.15}
-            color="#a855f7"
+            color="#ffffff" // White fill
             anchorX="center"
             anchorY="middle"
             font="/fonts/Geist-Regular.ttf"
-            outlineWidth={0.005}
-            outlineColor="#1e1b4b"
+            outlineWidth={0.01} // Black stroke
+            outlineColor="#000000"
           >
             {card.gridX * gridSize + card.gridZ + 1}
           </Text>
         </group>
       )}
 
-      {/* Card Border Highlight */}
+      {/* Card Border Highlight - Purple glow like screenshot */}
       {isSelected && (
         <mesh position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.002, 0]}>
           <planeGeometry args={[GAME_CONFIG.CARD_WIDTH * 1.05, GAME_CONFIG.CARD_DEPTH * 1.05]} />
-          <meshBasicMaterial color="#a855f7" transparent opacity={0.6} />
+          <meshBasicMaterial color="#8B5CF6" transparent opacity={0.8} />
         </mesh>
       )}
 
-      {/* Decorative pattern on card back when no texture */}
+      {/* Decorative pattern on card back when no texture - Purple pattern */}
       {!showingFront && !cardBackTexture && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           {Array.from({ length: 5 }).map((_, i) => (
             <mesh key={`line-${i}`} position={[(i - 2) * 0.15, 0, 0]}>
               <planeGeometry args={[0.02, 0.8]} />
-              <meshBasicMaterial color="#7c3aed" transparent opacity={0.3} />
+              <meshBasicMaterial color="#8B5CF6" transparent opacity={0.4} />
             </mesh>
           ))}
           {Array.from({ length: 5 }).map((_, i) => (
             <mesh key={`line-h-${i}`} position={[0, 0, (i - 2) * 0.15]}>
               <planeGeometry args={[0.8, 0.02]} />
-              <meshBasicMaterial color="#7c3aed" transparent opacity={0.3} />
+              <meshBasicMaterial color="#8B5CF6" transparent opacity={0.4} />
             </mesh>
           ))}
         </group>
