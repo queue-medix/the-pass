@@ -14,6 +14,7 @@ interface GameCardProps {
   gameState: string
   gridSize: number
   centerPosition: [number, number, number]
+  shouldReturnToGrid?: boolean // New prop to control return behavior
 }
 
 export const GameCard: React.FC<GameCardProps> = ({
@@ -23,6 +24,7 @@ export const GameCard: React.FC<GameCardProps> = ({
   gameState,
   gridSize,
   centerPosition,
+  shouldReturnToGrid = true, // Default to true for existing behavior
 }) => {
   const groupRef = useRef<THREE.Group>(null)
   const cardRef = useRef<THREE.Mesh>(null)
@@ -75,20 +77,35 @@ export const GameCard: React.FC<GameCardProps> = ({
       }
 
       // Scale up when lifted
-      if (gameState !== "returning") {
+      if (gameState !== "returning" || !shouldReturnToGrid) {
         scale = [
           GAME_CONFIG.REVEALED_SCALE, // Width
           GAME_CONFIG.REVEALED_SCALE / GAME_CONFIG.REVEALED_ASPECT_RATIO, // Height (taller for 4:5)
           GAME_CONFIG.REVEALED_SCALE, // Depth
         ]
       } else {
-        // Scale back down when returning
+        // Scale back down when returning (only if shouldReturnToGrid is true)
         scale = [1, 1, 1]
       }
     }
 
+    // Special handling for PASS cards - keep them in center position if they shouldn't return
+    if (card.type === "PASS" && !shouldReturnToGrid && card.isFlipped) {
+      pos = [
+        centerPosition[0], // Center X
+        GAME_CONFIG.FLIP_HEIGHT, // Height
+        centerPosition[2] - 1, // Slightly forward from center Z
+      ]
+      rot = [Math.PI * 0.47, 0, Math.PI] // Tilt toward user, front side visible
+      scale = [
+        GAME_CONFIG.REVEALED_SCALE, // Width
+        GAME_CONFIG.REVEALED_SCALE / GAME_CONFIG.REVEALED_ASPECT_RATIO, // Height
+        GAME_CONFIG.REVEALED_SCALE, // Depth
+      ]
+    }
+
     return { targetPosition: pos, targetRotation: rot, targetScale: scale }
-  }, [card.position, card.isFlipped, isSelected, isAnimating, gameState, centerPosition])
+  }, [card.position, card.isFlipped, card.type, isSelected, isAnimating, gameState, centerPosition, shouldReturnToGrid])
 
   useFrame((state, delta) => {
     if (!groupRef.current) return
@@ -103,9 +120,15 @@ export const GameCard: React.FC<GameCardProps> = ({
       scaleSpeed = delta * 1.2
     } else if (gameState === "revealing") {
       rotationSpeed = delta * 1.5 // Slower flip
-    } else if (gameState === "returning") {
+    } else if (gameState === "returning" && shouldReturnToGrid) {
       positionSpeed = delta * 2.5 // Faster return
       scaleSpeed = delta * 2.5
+    }
+
+    // Don't animate position/scale for PASS cards that shouldn't return
+    if (card.type === "PASS" && !shouldReturnToGrid && card.isFlipped) {
+      positionSpeed = delta * 0.5 // Very slow, minimal adjustment
+      scaleSpeed = delta * 0.5
     }
 
     // Animate position
@@ -122,8 +145,8 @@ export const GameCard: React.FC<GameCardProps> = ({
     groupRef.current.scale.y = THREE.MathUtils.lerp(groupRef.current.scale.y, targetScale[1], scaleSpeed)
     groupRef.current.scale.z = THREE.MathUtils.lerp(groupRef.current.scale.z, targetScale[2], scaleSpeed)
 
-    // Add subtle floating animation when selected and showing
-    if (isSelected && gameState === "showing") {
+    // Add subtle floating animation when selected and showing, or for PASS cards that stay revealed
+    if ((isSelected && gameState === "showing") || (card.type === "PASS" && !shouldReturnToGrid && card.isFlipped)) {
       groupRef.current.position.y += Math.sin(state.clock.elapsedTime * 1.5) * 0.02
     }
   })
@@ -178,9 +201,9 @@ export const GameCard: React.FC<GameCardProps> = ({
 
       {/* FRONT SIDE TEXT: DUD/PASS (visible when Z rotation ≈ π) */}
       {showingFront && (
-        <group position={[0, -GAME_CONFIG.CARD_HEIGHT / 2 - 0.002, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <group position={[0, -GAME_CONFIG.CARD_HEIGHT / 2 - 0.002, 0]} rotation={[Math.PI / 2, 0, Math.PI]}>
           <Text
-            fontSize={isSelected ? 0.5 : 0.3}
+            fontSize={0.3}
             font="/fonts/Geist-Bold.ttf"
             color={card.type === "PASS" ? "#1F2937" : "#FFFFFF"} // Dark text on gold, white on red
             anchorX="center"
@@ -213,7 +236,7 @@ export const GameCard: React.FC<GameCardProps> = ({
       )}
 
       {/* Card Border Highlight */}
-      {isSelected && (
+      {(isSelected || (card.type === "PASS" && !shouldReturnToGrid && card.isFlipped)) && (
         <mesh position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.003, 0]}>
           <planeGeometry args={[GAME_CONFIG.CARD_WIDTH * 1.1, GAME_CONFIG.CARD_DEPTH * 1.1]} />
           <meshBasicMaterial color="#A855F7" transparent opacity={0.8} />

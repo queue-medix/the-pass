@@ -46,6 +46,7 @@ export const GameScene: React.FC<GameSceneProps> = ({
           gameState={gameState}
           gridSize={gridSize}
           centerPosition={centerPosition}
+          shouldReturnToGrid={card.type !== "PASS"}
         />
       ))}
 
