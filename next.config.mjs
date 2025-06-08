@@ -12,13 +12,15 @@ const nextConfig = {
   experimental: {
     esmExternals: 'loose'
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // Fix Three.js multiple instances warning
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'three': require.resolve('three'),
-      '@react-three/fiber': require.resolve('@react-three/fiber'),
-      '@react-three/drei': require.resolve('@react-three/drei'),
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'three': 'three',
+        '@react-three/fiber': '@react-three/fiber',
+        '@react-three/drei': '@react-three/drei',
+      }
     }
     
     config.externals.push({
