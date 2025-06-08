@@ -63,10 +63,10 @@ export const GameCard: React.FC<GameCardProps> = ({
       // Different rotations based on game state
       if (gameState === "lifting") {
         // Card lifts up, still showing back, faces user directly
-        rot = [-Math.PI * 0.47, 0, 0] // Face user, back side visible
+        rot = [Math.PI * 0.47, 0, 0] // Face user, back side visible (corrected orientation)
       } else if (gameState === "revealing" || gameState === "showing" || gameState === "returning") {
         // Card flips to show front side, still facing user
-        rot = [-Math.PI * 0.47, 0, Math.PI] // Face user, front side visible
+        rot = [Math.PI * 0.47, 0, Math.PI] // Face user, front side visible (corrected orientation)
       }
 
       // Scale up when lifted
@@ -174,9 +174,9 @@ export const GameCard: React.FC<GameCardProps> = ({
         ))}
       </mesh>
 
-      {/* Card Text - Front Side (when flipped) */}
+      {/* Card Text - Front Side (when flipped) - Always show DUD/PASS text when card is flipped */}
       {showingFront && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <Text
             fontSize={isSelected ? 0.4 : 0.25}
             font="/fonts/Geist-Bold.ttf"
@@ -194,7 +194,7 @@ export const GameCard: React.FC<GameCardProps> = ({
 
       {/* Card Number - Back Side (when not flipped) */}
       {!showingFront && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <Text
             fontSize={isSelected ? 0.2 : 0.15}
             color="#a855f7"
@@ -219,7 +219,7 @@ export const GameCard: React.FC<GameCardProps> = ({
 
       {/* Decorative pattern on card back when no texture */}
       {!showingFront && !cardBackTexture && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[Math.PI / 2, 0, 0]}>
           {Array.from({ length: 5 }).map((_, i) => (
             <mesh key={`line-${i}`} position={[(i - 2) * 0.15, 0, 0]}>
               <planeGeometry args={[0.02, 0.8]} />

@@ -1,6 +1,6 @@
-import { Geist } from "next/font/google"
+import { Poppins } from "next/font/google"
 
-export const geistSans = Geist({
+export const geistSans = Poppins({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-geist-sans",
