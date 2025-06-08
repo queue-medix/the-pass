@@ -39,16 +39,21 @@ export const GameCard: React.FC<GameCardProps> = ({
     }
   }, [cardBackTexture])
 
+  // Calculate card number (1 to n, left to right, top to bottom)
+  const cardNumber = useMemo(() => {
+    return card.gridZ * gridSize + card.gridX + 1
+  }, [card.gridX, card.gridZ, gridSize])
+
   // Calculate target position, rotation, and scale for the card
   const { targetPosition, targetRotation, targetScale } = useMemo(() => {
     // Default values when in grid
     let pos = [...card.position] as [number, number, number]
-    let rot = [0, 0, 0] as [number, number, number]
+    let rot = [0, 0, 0] as [number, number, number] // Default: back side up (Z rotation = 0)
     let scale = [1, 1, 1] as [number, number, number]
 
     // If card is flipped but not selected, show it face-up in the grid
     if (card.isFlipped && !isSelected) {
-      rot = [0, 0, Math.PI] // Face-up in grid
+      rot = [0, 0, Math.PI] // Z rotation = 180° shows front side
     }
 
     // When selected and animating
@@ -62,11 +67,11 @@ export const GameCard: React.FC<GameCardProps> = ({
 
       // Different rotations based on game state
       if (gameState === "lifting") {
-        // Card lifts up, still showing back, faces user directly
-        rot = [Math.PI * 0.47, 0, 0] // Face user, back side visible
+        // Card lifts up, still showing back, tilts toward user
+        rot = [Math.PI * 0.47, 0, 0] // Tilt toward user, back side visible (Z = 0)
       } else if (gameState === "revealing" || gameState === "showing" || gameState === "returning") {
-        // Card flips to show front side, still facing user
-        rot = [Math.PI * 0.47, 0, Math.PI] // Face user, front side visible
+        // Card flips to show front side, still tilted toward user
+        rot = [Math.PI * 0.47, 0, Math.PI] // Tilt toward user, front side visible (Z = 180°)
       }
 
       // Scale up when lifted
@@ -123,41 +128,43 @@ export const GameCard: React.FC<GameCardProps> = ({
     }
   })
 
-  // Create materials for card sides - PROPER CARD BEHAVIOR
+  // Determine which side is currently visible based on Z rotation
+  // Z rotation of 0 = back side visible, Z rotation of π = front side visible
+  const currentZRotation = groupRef.current?.rotation.z || targetRotation[2]
+  const showingFront = Math.abs(currentZRotation) > Math.PI / 2 // Front visible when Z rotation is close to π
+
+  // Create materials for card sides
   const materials = useMemo(() => {
-    // BACK SIDE: Game logo/image with numbers (like real playing cards)
+    // BACK SIDE material: Game logo/image with numbers
     const backMaterial = new THREE.MeshStandardMaterial({
-      color: cardBackTexture ? "#ffffff" : "#4C1D95", // White for texture, purple fallback
+      color: "#8B5CF6", // Purple base color
       roughness: 0.4,
       metalness: 0.2,
-      map: cardBackTexture, // Logo/image only on back
-      emissive: isSelected ? "#8B5CF6" : "#000000",
-      emissiveIntensity: isSelected ? 0.3 : 0,
+      map: cardBackTexture,
+      emissive: isSelected ? "#7C3AED" : "#4C1D95",
+      emissiveIntensity: isSelected ? 0.4 : 0.2,
     })
 
-    // FRONT SIDE: Plain solid color with DUD/PASS text (NO IMAGE)
+    // FRONT SIDE material: Plain solid color
     const frontMaterial = new THREE.MeshStandardMaterial({
-      color: card.type === "PASS" ? "#FFD700" : "#dc2626", // Gold for PASS, red for DUD
+      color: card.type === "PASS" ? "#FFD700" : "#DC2626", // Gold for PASS, red for DUD
       roughness: card.type === "PASS" ? 0.1 : 0.3,
       metalness: card.type === "PASS" ? 0.8 : 0.1,
-      emissive: card.type === "PASS" ? "#FFA500" : "#991b1b",
-      emissiveIntensity: card.type === "PASS" ? 0.3 : 0.1,
-      // NO MAP/TEXTURE - just solid color
+      emissive: card.type === "PASS" ? "#FFA500" : "#B91C1C",
+      emissiveIntensity: card.type === "PASS" ? 0.4 : 0.2,
     })
 
-    // Edge materials (use back material for consistency)
+    // Box geometry face order: [+X, -X, +Y, -Y, +Z, -Z]
+    // For a card lying flat: +Y = top face (what we see), -Y = bottom face
     return [
-      backMaterial, // right edge
-      backMaterial, // left edge
-      backMaterial, // top edge
-      backMaterial, // bottom edge
-      frontMaterial, // front face (DUD/PASS - NO IMAGE)
-      backMaterial, // back face (logo/image with numbers)
+      backMaterial, // right edge (+X)
+      backMaterial, // left edge (-X)  
+      backMaterial, // top face (+Y) - this is what we see normally (back with texture)
+      frontMaterial, // bottom face (-Y) - this becomes visible when flipped (front with color)
+      backMaterial, // front edge (+Z)
+      backMaterial, // back edge (-Z)
     ]
   }, [card.type, cardBackTexture, isSelected])
-
-  // Determine which side is currently visible
-  const showingFront = card.isFlipped
 
   return (
     <group ref={groupRef} position={card.position}>
@@ -169,17 +176,17 @@ export const GameCard: React.FC<GameCardProps> = ({
         ))}
       </mesh>
 
-      {/* FRONT SIDE TEXT: DUD/PASS on solid color background (NO IMAGE) */}
+      {/* FRONT SIDE TEXT: DUD/PASS (visible when Z rotation ≈ π) */}
       {showingFront && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <group position={[0, -GAME_CONFIG.CARD_HEIGHT / 2 - 0.002, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <Text
-            fontSize={isSelected ? 0.4 : 0.25}
+            fontSize={isSelected ? 0.5 : 0.3}
             font="/fonts/Geist-Bold.ttf"
-            color={card.type === "PASS" ? "#006400" : "#ffffff"} // Dark green for PASS, white for DUD
+            color={card.type === "PASS" ? "#1F2937" : "#FFFFFF"} // Dark text on gold, white on red
             anchorX="center"
             anchorY="middle"
-            outlineWidth={0.02}
-            outlineColor={card.type === "PASS" ? "#004000" : "#000000"}
+            outlineWidth={0.03}
+            outlineColor={card.type === "PASS" ? "#92400E" : "#000000"}
             fontWeight="bold"
           >
             {card.type}
@@ -187,44 +194,50 @@ export const GameCard: React.FC<GameCardProps> = ({
         </group>
       )}
 
-      {/* BACK SIDE TEXT: Numbers on image/logo background */}
+      {/* BACK SIDE TEXT: Numbers (visible when Z rotation ≈ 0) */}
       {!showingFront && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <Text
-            fontSize={isSelected ? 0.2 : 0.15}
-            color="#ffffff" // White text
+            fontSize={isSelected ? 0.25 : 0.18}
+            color="#FFFFFF" // White text
             anchorX="center"
             anchorY="middle"
-            font="/fonts/Geist-Regular.ttf"
-            outlineWidth={0.01}
+            font="/fonts/Geist-Bold.ttf"
+            outlineWidth={0.02}
             outlineColor="#000000" // Black outline for visibility
+            fontWeight="bold"
           >
-            {card.gridX * gridSize + card.gridZ + 1}
+            {cardNumber}
           </Text>
         </group>
       )}
 
       {/* Card Border Highlight */}
       {isSelected && (
-        <mesh position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.002, 0]}>
-          <planeGeometry args={[GAME_CONFIG.CARD_WIDTH * 1.05, GAME_CONFIG.CARD_DEPTH * 1.05]} />
-          <meshBasicMaterial color="#8B5CF6" transparent opacity={0.8} />
+        <mesh position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.003, 0]}>
+          <planeGeometry args={[GAME_CONFIG.CARD_WIDTH * 1.1, GAME_CONFIG.CARD_DEPTH * 1.1]} />
+          <meshBasicMaterial color="#A855F7" transparent opacity={0.8} />
         </mesh>
       )}
 
       {/* Fallback pattern ONLY on back side when no texture */}
       {!showingFront && !cardBackTexture && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <mesh key={`line-${i}`} position={[(i - 2) * 0.15, 0, 0]}>
-              <planeGeometry args={[0.02, 0.8]} />
-              <meshBasicMaterial color="#8B5CF6" transparent opacity={0.4} />
+        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          {/* Create a decorative pattern */}
+          <mesh>
+            <planeGeometry args={[0.8, 0.8]} />
+            <meshBasicMaterial color="#8B5CF6" transparent opacity={0.6} />
+          </mesh>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <mesh key={`line-${i}`} position={[(i - 1) * 0.2, 0, 0.001]}>
+              <planeGeometry args={[0.03, 0.6]} />
+              <meshBasicMaterial color="#A855F7" transparent opacity={0.8} />
             </mesh>
           ))}
-          {Array.from({ length: 5 }).map((_, i) => (
-            <mesh key={`line-h-${i}`} position={[0, 0, (i - 2) * 0.15]}>
-              <planeGeometry args={[0.8, 0.02]} />
-              <meshBasicMaterial color="#8B5CF6" transparent opacity={0.4} />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <mesh key={`line-h-${i}`} position={[0, (i - 1) * 0.2, 0.001]}>
+              <planeGeometry args={[0.6, 0.03]} />
+              <meshBasicMaterial color="#A855F7" transparent opacity={0.8} />
             </mesh>
           ))}
         </group>

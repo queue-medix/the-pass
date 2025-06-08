@@ -2,6 +2,7 @@
   "name": "the-hustle-game",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.9.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
+    "@hookform/resolvers": "3.9.1",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -77,6 +78,5 @@
     "postcss": "^8.5",
     "tailwindcss": "3.4.17",
     "typescript": "^5"
-  },
-  "packageManager": "npm@10.9.0"
+  }
 }
