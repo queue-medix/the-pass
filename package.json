@@ -2,12 +2,15 @@
   "name": "the-hustle-game",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@10.9.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "dependencies": {
     "@hookform/resolvers": "3.9.1",
