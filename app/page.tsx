@@ -1,3 +1,4 @@
+'use client'
 import TheHustleGame from "@/components/the-hustle-game"
 import { Suspense } from "react"
 
