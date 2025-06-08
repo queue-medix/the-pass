@@ -35,7 +35,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     if (cardBackTexture) {
       cardBackTexture.wrapS = cardBackTexture.wrapT = THREE.RepeatWrapping
       cardBackTexture.repeat.set(1, 1)
-      cardBackTexture.encoding = THREE.sRGBEncoding
+      cardBackTexture.colorSpace = THREE.SRGBColorSpace
     }
   }, [cardBackTexture])
 
@@ -123,41 +123,36 @@ export const GameCard: React.FC<GameCardProps> = ({
     }
   })
 
-  // Create materials for different sides of the card
+  // Create materials for card sides - PROPER CARD BEHAVIOR
   const materials = useMemo(() => {
-    // Front material (PASS = bright gold, DUD = red) - Match screenshot colors
-    const frontMaterial = new THREE.MeshStandardMaterial({
-      color: card.type === "PASS" ? "#FFD700" : "#dc2626", // Bright gold for PASS
-      roughness: card.type === "PASS" ? 0.1 : 0.3,
-      metalness: card.type === "PASS" ? 0.8 : 0.1,
-      emissive: card.type === "PASS" ? "#FFA500" : "#991b1b", // Orange glow for PASS
-      emissiveIntensity: card.type === "PASS" ? 0.3 : 0.1,
-    })
-
-    // Back material with pattern/image - Purple tint to match screenshot
+    // BACK SIDE: Game logo/image with numbers (like real playing cards)
     const backMaterial = new THREE.MeshStandardMaterial({
-      color: cardBackTexture ? "#E6E6FA" : "#4C1D95", // Light purple tint
+      color: cardBackTexture ? "#ffffff" : "#4C1D95", // White for texture, purple fallback
       roughness: 0.4,
       metalness: 0.2,
-      map: cardBackTexture,
-      emissive: isSelected ? "#8B5CF6" : "#4C1D95", // Purple glow
-      emissiveIntensity: isSelected ? 0.4 : 0.2,
+      map: cardBackTexture, // Logo/image only on back
+      emissive: isSelected ? "#8B5CF6" : "#000000",
+      emissiveIntensity: isSelected ? 0.3 : 0,
     })
 
-    // If no texture, create a purple pattern
-    if (!cardBackTexture) {
-      backMaterial.emissive = new THREE.Color("#8B5CF6")
-      backMaterial.emissiveIntensity = isSelected ? 0.6 : 0.3
-    }
+    // FRONT SIDE: Plain solid color with DUD/PASS text (NO IMAGE)
+    const frontMaterial = new THREE.MeshStandardMaterial({
+      color: card.type === "PASS" ? "#FFD700" : "#dc2626", // Gold for PASS, red for DUD
+      roughness: card.type === "PASS" ? 0.1 : 0.3,
+      metalness: card.type === "PASS" ? 0.8 : 0.1,
+      emissive: card.type === "PASS" ? "#FFA500" : "#991b1b",
+      emissiveIntensity: card.type === "PASS" ? 0.3 : 0.1,
+      // NO MAP/TEXTURE - just solid color
+    })
 
-    // Return array of materials for each face of the box
+    // Edge materials (use back material for consistency)
     return [
-      backMaterial, // right
-      backMaterial, // left
-      backMaterial, // top
-      backMaterial, // bottom
-      frontMaterial, // front (DUD/PASS side - plain color)
-      backMaterial, // back (image/pattern side)
+      backMaterial, // right edge
+      backMaterial, // left edge
+      backMaterial, // top edge
+      backMaterial, // bottom edge
+      frontMaterial, // front face (DUD/PASS - NO IMAGE)
+      backMaterial, // back face (logo/image with numbers)
     ]
   }, [card.type, cardBackTexture, isSelected])
 
@@ -174,13 +169,13 @@ export const GameCard: React.FC<GameCardProps> = ({
         ))}
       </mesh>
 
-      {/* Card Text - Front Side (DUD/PASS) - Written on the card surface */}
+      {/* FRONT SIDE TEXT: DUD/PASS on solid color background (NO IMAGE) */}
       {showingFront && (
         <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <Text
             fontSize={isSelected ? 0.4 : 0.25}
             font="/fonts/Geist-Bold.ttf"
-            color={card.type === "PASS" ? "#006400" : "#ffffff"} // Dark green for PASS (like screenshot)
+            color={card.type === "PASS" ? "#006400" : "#ffffff"} // Dark green for PASS, white for DUD
             anchorX="center"
             anchorY="middle"
             outlineWidth={0.02}
@@ -192,24 +187,24 @@ export const GameCard: React.FC<GameCardProps> = ({
         </group>
       )}
 
-      {/* Card Number - Back Side (with image/pattern) - Written on the card surface */}
+      {/* BACK SIDE TEXT: Numbers on image/logo background */}
       {!showingFront && (
         <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <Text
             fontSize={isSelected ? 0.2 : 0.15}
-            color="#ffffff" // White fill
+            color="#ffffff" // White text
             anchorX="center"
             anchorY="middle"
             font="/fonts/Geist-Regular.ttf"
-            outlineWidth={0.01} // Black stroke
-            outlineColor="#000000"
+            outlineWidth={0.01}
+            outlineColor="#000000" // Black outline for visibility
           >
             {card.gridX * gridSize + card.gridZ + 1}
           </Text>
         </group>
       )}
 
-      {/* Card Border Highlight - Purple glow like screenshot */}
+      {/* Card Border Highlight */}
       {isSelected && (
         <mesh position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.002, 0]}>
           <planeGeometry args={[GAME_CONFIG.CARD_WIDTH * 1.05, GAME_CONFIG.CARD_DEPTH * 1.05]} />
@@ -217,7 +212,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         </mesh>
       )}
 
-      {/* Decorative pattern on card back when no texture - Purple pattern */}
+      {/* Fallback pattern ONLY on back side when no texture */}
       {!showingFront && !cardBackTexture && (
         <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           {Array.from({ length: 5 }).map((_, i) => (
