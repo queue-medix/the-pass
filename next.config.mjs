@@ -9,10 +9,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'export',
-  trailingSlash: true,
   experimental: {
-    esmExternals: 'loose'
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   webpack: (config, { isServer }) => {
     // Fix Three.js multiple instances warning
@@ -24,6 +29,12 @@ const nextConfig = {
         '@react-three/drei': '@react-three/drei',
       }
     }
+    
+    // Handle .glb, .gltf files
+    config.module.rules.push({
+      test: /\.(glb|gltf)$/,
+      type: 'asset/resource',
+    })
     
     config.externals.push({
       'utf-8-validate': 'commonjs utf-8-validate',
