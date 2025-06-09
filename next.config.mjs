@@ -18,9 +18,6 @@ const nextConfig = {
         '@react-three/fiber': '@react-three/fiber',
         '@react-three/drei': '@react-three/drei',
       }
-      
-      // Prevent multiple Three.js instances
-      config.resolve.dedupe = ['three', '@react-three/fiber', '@react-three/drei']
     }
     
     // Handle .glb, .gltf files
@@ -40,7 +37,7 @@ const nextConfig = {
         buffer: false,
       }
       
-      // Ensure proper module resolution for production
+      // Prevent multiple Three.js instances using optimization.splitChunks
       config.optimization = {
         ...config.optimization,
         splitChunks: {
@@ -52,6 +49,7 @@ const nextConfig = {
               name: 'three',
               chunks: 'all',
               priority: 10,
+              enforce: true,
             },
           },
         },
