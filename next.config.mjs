@@ -9,15 +9,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Remove experimental turbo config that might interfere
   webpack: (config, { isServer, dev }) => {
     // Critical: Ensure Three.js modules are properly resolved
     if (!isServer) {
       config.resolve.alias = {
         ...config.resolve.alias,
-        'three': require.resolve('three'),
-        '@react-three/fiber': require.resolve('@react-three/fiber'),
-        '@react-three/drei': require.resolve('@react-three/drei'),
+        'three': 'three',
+        '@react-three/fiber': '@react-three/fiber',
+        '@react-three/drei': '@react-three/drei',
       }
       
       // Prevent multiple Three.js instances
@@ -41,12 +40,21 @@ const nextConfig = {
         buffer: false,
       }
       
-      // Ensure proper module resolution
+      // Ensure proper module resolution for production
       config.optimization = {
         ...config.optimization,
-        providedExports: false,
-        usedExports: false,
-        sideEffects: false,
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          cacheGroups: {
+            ...config.optimization.splitChunks?.cacheGroups,
+            three: {
+              test: /[\\/]node_modules[\\/](three|@react-three)[\\/]/,
+              name: 'three',
+              chunks: 'all',
+              priority: 10,
+            },
+          },
+        },
       }
     }
     
