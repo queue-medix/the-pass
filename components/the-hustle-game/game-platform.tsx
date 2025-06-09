@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useMemo } from "react"
+import { useTexture } from "@react-three/drei"
 import * as THREE from "three"
 import { GAME_CONFIG } from "@/lib/game-constants"
 
@@ -14,13 +15,36 @@ export const GamePlatform: React.FC<GamePlatformProps> = ({ gridSize }) => {
     return gridSize * (1 + GAME_CONFIG.CARD_SPACING) + 1
   }, [gridSize])
 
+  // Load platform textures
+  const platformTextures = useTexture({
+    map: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Marble019_1K-JPG_Color-yiNesdpa46Mn7IwRiCFo11NERCO2Yw.jpg",
+    normalMap:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Marble019_1K-JPG_NormalGL-yyE1gw0semnetBvj2CIz5UfqwTwoHr.jpg",
+    roughnessMap:
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Marble019_1K-JPG_Roughness-E11kZGSuFRz7Tw1kAaDKzpCm9PexxD.jpg",
+  })
+
+  // Configure textures
+  useMemo(() => {
+    Object.values(platformTextures).forEach((texture) => {
+      if (texture) {
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+        texture.repeat.set(2, 2)
+        texture.colorSpace = THREE.SRGBColorSpace
+      }
+    })
+  }, [platformTextures])
+
   return (
     <group>
-      {/* Main Platform with simple material */}
+      {/* Main Platform with marble texture */}
       <mesh position={[0, 0, 0]} receiveShadow castShadow>
         <boxGeometry args={[platformSize, GAME_CONFIG.PLATFORM_HEIGHT, platformSize]} />
         <meshStandardMaterial
           color="#4c1d95"
+          map={platformTextures.map}
+          normalMap={platformTextures.normalMap}
+          roughnessMap={platformTextures.roughnessMap}
           roughness={0.2}
           metalness={0.8}
           emissive="#7c3aed"
