@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { Environment, SoftShadows } from "@react-three/drei"
+import { Environment, SoftShadows, OrbitControls } from "@react-three/drei"
 import { GamePlatform } from "./game-platform"
 import { GameCard } from "./game-card"
 import { LightingSetup } from "./lighting-setup"
@@ -31,6 +31,18 @@ export const GameScene: React.FC<GameSceneProps> = ({
 
   return (
     <>
+      {/* Basic lighting that always works */}
+      <ambientLight intensity={0.6} color="#ffffff" />
+      <directionalLight
+        position={[10, 10, 5]}
+        intensity={1}
+        color="#ffffff"
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+      />
+
+      {/* Soft shadows */}
       <SoftShadows size={25} samples={16} focus={0.5} />
 
       {/* Game Platform */}
@@ -55,8 +67,25 @@ export const GameScene: React.FC<GameSceneProps> = ({
         <ParticleSystem position={[centerPosition[0], GAME_CONFIG.FLIP_HEIGHT, centerPosition[2]]} />
       )}
 
+      {/* Additional lighting setup */}
       <LightingSetup />
+
+      {/* Environment with fallback */}
       <Environment preset="night" />
+
+      {/* Camera controls for debugging */}
+      <OrbitControls
+        target={GAME_CONFIG.CAMERA_TARGET}
+        minPolarAngle={Math.PI / 6}
+        maxPolarAngle={Math.PI / 3}
+        minDistance={8}
+        maxDistance={20}
+        enablePan={true}
+        autoRotate={false}
+        autoRotateSpeed={0}
+        enableRotate={true}
+        enableZoom={true}
+      />
     </>
   )
 }

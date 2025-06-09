@@ -3,7 +3,6 @@
 import type React from "react"
 import { useMemo } from "react"
 import * as THREE from "three"
-import { RoundedBoxGeometry } from "./rounded-box"
 import { GAME_CONFIG } from "@/lib/game-constants"
 
 interface GamePlatformProps {
@@ -17,13 +16,9 @@ export const GamePlatform: React.FC<GamePlatformProps> = ({ gridSize }) => {
 
   return (
     <group>
-      {/* Main Platform with rounded edges */}
+      {/* Main Platform with simple material */}
       <mesh position={[0, 0, 0]} receiveShadow castShadow>
-        <RoundedBoxGeometry
-          args={[platformSize, GAME_CONFIG.PLATFORM_HEIGHT, platformSize]}
-          radius={GAME_CONFIG.PLATFORM_BORDER_RADIUS}
-          smoothness={8}
-        />
+        <boxGeometry args={[platformSize, GAME_CONFIG.PLATFORM_HEIGHT, platformSize]} />
         <meshStandardMaterial
           color="#4c1d95"
           roughness={0.2}

@@ -10,14 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
+    esmExternals: 'loose'
   },
   webpack: (config, { isServer }) => {
     // Fix Three.js multiple instances warning

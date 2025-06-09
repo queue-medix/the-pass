@@ -7,10 +7,59 @@ import { GameScene } from "./game-scene"
 import { GameUI } from "./game-ui"
 import { useGameLogic } from "./use-game-logic"
 
+// Debug component to show when WebGL is available
+function DebugInfo({ error }: { error?: Error }) {
+  const [info, setInfo] = useState<{
+    webglAvailable: boolean
+    webgl2Available: boolean
+    userAgent: string
+    screenSize: string
+  }>({
+    webglAvailable: false,
+    webgl2Available: false,
+    userAgent: "",
+    screenSize: "",
+  })
+
+  useEffect(() => {
+    // Check WebGL support
+    try {
+      const canvas = document.createElement("canvas")
+      const gl1 = canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
+      const gl2 = canvas.getContext("webgl2")
+
+      setInfo({
+        webglAvailable: !!gl1,
+        webgl2Available: !!gl2,
+        userAgent: navigator.userAgent,
+        screenSize: `${window.innerWidth}x${window.innerHeight}`,
+      })
+    } catch (e) {
+      console.error("Error checking WebGL support:", e)
+    }
+  }, [])
+
+  return (
+    <div className="fixed top-0 left-0 bg-black/80 text-white p-4 z-50 text-xs max-w-full overflow-auto">
+      <h3 className="font-bold mb-2">Debug Info:</h3>
+      <p>WebGL: {info.webglAvailable ? "✅" : "❌"}</p>
+      <p>WebGL2: {info.webgl2Available ? "✅" : "❌"}</p>
+      <p>Screen: {info.screenSize}</p>
+      {error && (
+        <div className="mt-2 text-red-400">
+          <p className="font-bold">Error:</p>
+          <p>{error.message}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Error fallback component
 function GameErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
   return (
     <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950">
+      <DebugInfo error={error} />
       <div className="text-center p-8 bg-black/50 rounded-lg border border-purple-500 max-w-md mx-4">
         <h2 className="text-2xl font-bold text-red-400 mb-4">Game Error</h2>
         <p className="text-purple-300 mb-4">Something went wrong loading the game.</p>
@@ -33,6 +82,7 @@ function GameErrorFallback({ error, resetErrorBoundary }: { error: Error; resetE
 function GameLoading() {
   return (
     <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950">
+      <DebugInfo />
       <div className="text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-400 mx-auto mb-4"></div>
         <div className="text-2xl font-bold text-yellow-400">Loading The Hustle...</div>
@@ -44,6 +94,7 @@ function GameLoading() {
 
 export default function TheHustleGame() {
   const [mounted, setMounted] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
   const { cards, gridSize, gameState, selectedCard, isAnimating, winner, setGridSize, flipRandomCard, resetGame } =
     useGameLogic()
 
@@ -58,8 +109,24 @@ export default function TheHustleGame() {
 
   // Ensure component only renders on client
   useEffect(() => {
-    setMounted(true)
+    try {
+      // Check if WebGL is available
+      const canvas = document.createElement("canvas")
+      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
+
+      if (!gl) {
+        throw new Error("WebGL not supported")
+      }
+
+      setMounted(true)
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error("Unknown error initializing WebGL"))
+    }
   }, [])
+
+  if (error) {
+    return <GameErrorFallback error={error} resetErrorBoundary={() => setError(null)} />
+  }
 
   if (!mounted) {
     return <GameLoading />
@@ -68,6 +135,9 @@ export default function TheHustleGame() {
   return (
     <ErrorBoundary fallback={(error, reset) => <GameErrorFallback error={error} resetErrorBoundary={reset} />}>
       <div className="fixed inset-0 w-full h-full bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950 font-sans overflow-hidden">
+        {/* Debug info */}
+        <DebugInfo />
+
         {/* Particle Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.4),transparent_50%)]" />
@@ -108,9 +178,14 @@ export default function TheHustleGame() {
               alpha: false,
               powerPreference: "high-performance",
             }}
-            dpr={[1, 2]}
+            dpr={[1, 1.5]} // Lower DPR for better performance
             onCreated={({ gl }) => {
               gl.setClearColor("#1a103d", 1)
+              console.log("Canvas created successfully")
+            }}
+            onError={(error) => {
+              console.error("Canvas error:", error)
+              setError(error)
             }}
           >
             <Suspense fallback={null}>

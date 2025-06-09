@@ -181,7 +181,7 @@ export const GameCard: React.FC<GameCardProps> = ({
     // For a card lying flat: +Y = top face (what we see), -Y = bottom face
     return [
       backMaterial, // right edge (+X)
-      backMaterial, // left edge (-X)  
+      backMaterial, // left edge (-X)
       backMaterial, // top face (+Y) - this is what we see normally (back with texture)
       frontMaterial, // bottom face (-Y) - this becomes visible when flipped (front with color)
       backMaterial, // front edge (+Z)
