@@ -14,7 +14,7 @@ interface GameCardProps {
   gameState: string
   gridSize: number
   centerPosition: [number, number, number]
-  shouldReturnToGrid?: boolean // New prop to control return behavior
+  shouldReturnToGrid?: boolean
 }
 
 export const GameCard: React.FC<GameCardProps> = ({
@@ -24,10 +24,12 @@ export const GameCard: React.FC<GameCardProps> = ({
   gameState,
   gridSize,
   centerPosition,
-  shouldReturnToGrid = true, // Default to true for existing behavior
+  shouldReturnToGrid = true,
 }) => {
   const groupRef = useRef<THREE.Group>(null)
   const cardRef = useRef<THREE.Mesh>(null)
+
+  // Load external texture for card back
   const cardBackTexture = useTexture(
     "https://static.vecteezy.com/system/resources/thumbnails/009/743/071/small_2x/crest-ship-classic-logo-template-free-vector.jpg",
   )
@@ -241,29 +243,6 @@ export const GameCard: React.FC<GameCardProps> = ({
           <planeGeometry args={[GAME_CONFIG.CARD_WIDTH * 1.1, GAME_CONFIG.CARD_DEPTH * 1.1]} />
           <meshBasicMaterial color="#A855F7" transparent opacity={0.8} />
         </mesh>
-      )}
-
-      {/* Fallback pattern ONLY on back side when no texture */}
-      {!showingFront && !cardBackTexture && (
-        <group position={[0, GAME_CONFIG.CARD_HEIGHT / 2 + 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          {/* Create a decorative pattern */}
-          <mesh>
-            <planeGeometry args={[0.8, 0.8]} />
-            <meshBasicMaterial color="#8B5CF6" transparent opacity={0.6} />
-          </mesh>
-          {Array.from({ length: 3 }).map((_, i) => (
-            <mesh key={`line-${i}`} position={[(i - 1) * 0.2, 0, 0.001]}>
-              <planeGeometry args={[0.03, 0.6]} />
-              <meshBasicMaterial color="#A855F7" transparent opacity={0.8} />
-            </mesh>
-          ))}
-          {Array.from({ length: 3 }).map((_, i) => (
-            <mesh key={`line-h-${i}`} position={[0, (i - 1) * 0.2, 0.001]}>
-              <planeGeometry args={[0.6, 0.03]} />
-              <meshBasicMaterial color="#A855F7" transparent opacity={0.8} />
-            </mesh>
-          ))}
-        </group>
       )}
     </group>
   )
