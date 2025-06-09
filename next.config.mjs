@@ -19,7 +19,7 @@ const nextConfig = {
       },
     },
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Fix Three.js multiple instances warning
     if (!isServer) {
       config.resolve.alias = {
@@ -36,10 +36,23 @@ const nextConfig = {
       type: 'asset/resource',
     })
     
+    // Add specific handling for Three.js in production
+    if (!dev && !isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      }
+    }
+    
     config.externals.push({
       'utf-8-validate': 'commonjs utf-8-validate',
       'bufferutil': 'commonjs bufferutil',
     })
+    
+    // Ensure proper module resolution for Three.js
+    config.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx', '.json']
     
     return config
   }

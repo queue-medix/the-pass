@@ -42,6 +42,21 @@ function GameLoading() {
   )
 }
 
+// Add this after the GameLoading component
+function WebGLErrorFallback() {
+  return (
+    <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950">
+      <div className="text-center p-8 bg-black/50 rounded-lg border border-purple-500 max-w-md mx-4">
+        <h2 className="text-2xl font-bold text-red-400 mb-4">WebGL Not Supported</h2>
+        <p className="text-purple-300 mb-4">
+          Your browser or device doesn't support WebGL, which is required for this 3D game.
+        </p>
+        <p className="text-sm text-purple-400">Please try using a modern browser like Chrome, Firefox, or Safari.</p>
+      </div>
+    </div>
+  )
+}
+
 export default function TheHustleGame() {
   const [mounted, setMounted] = useState(false)
   const { cards, gridSize, gameState, selectedCard, isAnimating, winner, setGridSize, flipRandomCard, resetGame } =
@@ -49,6 +64,9 @@ export default function TheHustleGame() {
 
   // Set initial camera position for optimal viewing angle
   const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([6, 8, 6])
+
+  // Add this state and effect at the top of the component
+  const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
 
   // Adjust camera position based on grid size
   useEffect(() => {
@@ -61,8 +79,24 @@ export default function TheHustleGame() {
     setMounted(true)
   }, [])
 
+  // Add this effect after the mounted effect
+  useEffect(() => {
+    // Check WebGL support
+    const canvas = document.createElement("canvas")
+    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
+    setWebglSupported(!!gl)
+
+    if (!gl) {
+      console.error("WebGL not supported")
+    }
+  }, [])
+
   if (!mounted) {
     return <GameLoading />
+  }
+
+  if (webglSupported === false) {
+    return <WebGLErrorFallback />
   }
 
   return (
@@ -102,15 +136,37 @@ export default function TheHustleGame() {
             camera={{
               position: cameraPosition,
               fov: 45,
+              near: 0.1,
+              far: 1000,
             }}
             gl={{
               antialias: true,
               alpha: false,
               powerPreference: "high-performance",
+              preserveDrawingBuffer: true,
+              failIfMajorPerformanceCaveat: false,
             }}
             dpr={[1, 2]}
-            onCreated={({ gl }) => {
+            onCreated={({ gl, scene, camera }) => {
+              // Set clear color
               gl.setClearColor("#1a103d", 1)
+
+              // Ensure proper canvas sizing
+              gl.setSize(window.innerWidth, window.innerHeight)
+
+              // Log for debugging
+              console.log("Canvas created successfully", { gl, scene, camera })
+            }}
+            onError={(error) => {
+              console.error("Canvas error:", error)
+            }}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              zIndex: 1,
             }}
           >
             <Suspense fallback={null}>
