@@ -6,6 +6,7 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { GameScene } from "./game-scene"
 import { GameUI } from "./game-ui"
 import { useGameLogic } from "./use-game-logic"
+import { DebugScene } from "./debug-scene"
 
 // Error fallback component
 function GameErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
@@ -42,31 +43,14 @@ function GameLoading() {
   )
 }
 
-// Add this after the GameLoading component
-function WebGLErrorFallback() {
-  return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950">
-      <div className="text-center p-8 bg-black/50 rounded-lg border border-purple-500 max-w-md mx-4">
-        <h2 className="text-2xl font-bold text-red-400 mb-4">WebGL Not Supported</h2>
-        <p className="text-purple-300 mb-4">
-          Your browser or device doesn't support WebGL, which is required for this 3D game.
-        </p>
-        <p className="text-sm text-purple-400">Please try using a modern browser like Chrome, Firefox, or Safari.</p>
-      </div>
-    </div>
-  )
-}
-
 export default function TheHustleGame() {
   const [mounted, setMounted] = useState(false)
+  const [debugMode, setDebugMode] = useState(false)
   const { cards, gridSize, gameState, selectedCard, isAnimating, winner, setGridSize, flipRandomCard, resetGame } =
     useGameLogic()
 
   // Set initial camera position for optimal viewing angle
   const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([6, 8, 6])
-
-  // Add this state and effect at the top of the component
-  const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
 
   // Adjust camera position based on grid size
   useEffect(() => {
@@ -77,17 +61,12 @@ export default function TheHustleGame() {
   // Ensure component only renders on client
   useEffect(() => {
     setMounted(true)
-  }, [])
 
-  // Add this effect after the mounted effect
-  useEffect(() => {
-    // Check WebGL support
-    const canvas = document.createElement("canvas")
-    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
-    setWebglSupported(!!gl)
-
-    if (!gl) {
-      console.error("WebGL not supported")
+    // Enable debug mode in production to test basic Three.js functionality
+    if (typeof window !== "undefined") {
+      const isProduction = window.location.hostname !== "localhost"
+      setDebugMode(isProduction)
+      console.log("Environment:", isProduction ? "Production" : "Development")
     }
   }, [])
 
@@ -95,13 +74,19 @@ export default function TheHustleGame() {
     return <GameLoading />
   }
 
-  if (webglSupported === false) {
-    return <WebGLErrorFallback />
-  }
-
   return (
     <ErrorBoundary fallback={(error, reset) => <GameErrorFallback error={error} resetErrorBoundary={reset} />}>
       <div className="fixed inset-0 w-full h-full bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950 font-sans overflow-hidden">
+        {/* Debug toggle button */}
+        {typeof window !== "undefined" && (
+          <button
+            onClick={() => setDebugMode(!debugMode)}
+            className="absolute top-4 right-4 z-30 px-4 py-2 bg-red-600 text-white rounded text-sm"
+          >
+            {debugMode ? "Show Game" : "Debug Mode"}
+          </button>
+        )}
+
         {/* Particle Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.4),transparent_50%)]" />
@@ -130,11 +115,11 @@ export default function TheHustleGame() {
         </div>
 
         {/* 3D Game Scene */}
-        <Suspense fallback={<GameLoading />}>
+        <div className="absolute inset-0 z-10">
           <Canvas
-            shadows
+            shadows={!debugMode}
             camera={{
-              position: cameraPosition,
+              position: debugMode ? [5, 5, 5] : cameraPosition,
               fov: 45,
               near: 0.1,
               far: 1000,
@@ -143,44 +128,40 @@ export default function TheHustleGame() {
               antialias: true,
               alpha: false,
               powerPreference: "high-performance",
-              preserveDrawingBuffer: true,
+              preserveDrawingBuffer: false,
               failIfMajorPerformanceCaveat: false,
             }}
-            dpr={[1, 2]}
-            onCreated={({ gl, scene, camera }) => {
-              // Set clear color
+            dpr={[1, Math.min(window.devicePixelRatio, 2)]}
+            onCreated={({ gl, scene, camera, size }) => {
               gl.setClearColor("#1a103d", 1)
-
-              // Ensure proper canvas sizing
-              gl.setSize(window.innerWidth, window.innerHeight)
-
-              // Log for debugging
-              console.log("Canvas created successfully", { gl, scene, camera })
+              console.log("Canvas created:", {
+                renderer: gl.info.render,
+                memory: gl.info.memory,
+                size,
+                camera: camera.position,
+                scene: scene.children.length,
+              })
             }}
             onError={(error) => {
               console.error("Canvas error:", error)
             }}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              zIndex: 1,
-            }}
           >
             <Suspense fallback={null}>
-              <GameScene
-                cards={cards}
-                gridSize={gridSize}
-                selectedCard={selectedCard}
-                isAnimating={isAnimating}
-                gameState={gameState}
-                winner={winner}
-              />
+              {debugMode ? (
+                <DebugScene />
+              ) : (
+                <GameScene
+                  cards={cards}
+                  gridSize={gridSize}
+                  selectedCard={selectedCard}
+                  isAnimating={isAnimating}
+                  gameState={gameState}
+                  winner={winner}
+                />
+              )}
             </Suspense>
           </Canvas>
-        </Suspense>
+        </div>
 
         {/* Game UI */}
         <GameUI
