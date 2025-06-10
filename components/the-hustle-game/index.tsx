@@ -202,20 +202,20 @@ export default function TheHustleGame() {
               </mesh>
               
               {/* Your actual GameScene component - uncomment when ready */}
-              {/* <GameScene
+             <GameScene
                 cards={mockGameState.cards}
                 gridSize={mockGameState.gridSize}
                 selectedCard={mockGameState.selectedCard}
                 isAnimating={mockGameState.isAnimating}
                 gameState={mockGameState.gameState}
                 winner={mockGameState.winner}
-              /> */}
+              /> 
             </Suspense>
           </Canvas>
         </Suspense>
 
         {/* Game UI - Uncomment when ready */}
-        {/* <GameUI
+         <GameUI
           gameState={mockGameState.gameState}
           gridSize={mockGameState.gridSize}
           winner={mockGameState.winner}
@@ -223,7 +223,7 @@ export default function TheHustleGame() {
           onFlip={mockGameState.flipRandomCard}
           onReset={mockGameState.resetGame}
           onGridSizeChange={mockGameState.setGridSize}
-        /> */}
+        /> 
         
         {/* Debug info */}
         <div className="absolute bottom-4 left-4 bg-black/50 p-2 rounded text-white text-xs">
