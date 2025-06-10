@@ -8,7 +8,6 @@ import { LightingSetup } from "./lighting-setup"
 import { ParticleSystem } from "./particle-system"
 import type { GameCard as GameCardType } from "@/lib/game-constants"
 import { GAME_CONFIG } from "@/lib/game-constants"
-import { useEffect } from "react"
 
 interface GameSceneProps {
   cards: GameCardType[]
@@ -30,28 +29,23 @@ export const GameScene: React.FC<GameSceneProps> = ({
   // Center position for the revealed card
   const centerPosition: [number, number, number] = [0, 0, 0]
 
-  useEffect(() => {
-    console.log("GameScene rendered with:", {
-      cardsLength: cards.length,
-      gridSize,
-      gameState,
-      selectedCard: selectedCard?.id,
-    })
-  }, [cards.length, gridSize, gameState, selectedCard])
-
   return (
     <>
-      {/* Simplified lighting for better compatibility */}
+      {/* Basic lighting that always works */}
       <ambientLight intensity={0.6} color="#ffffff" />
       <directionalLight
-        position={[5, 5, 5]}
+        position={[10, 10, 5]}
         intensity={1}
         color="#ffffff"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
       />
-      <pointLight position={[0, 5, 0]} intensity={0.5} color="#8B5CF6" />
 
       {/* Soft shadows */}
       <SoftShadows size={25} samples={16} focus={0.5} />
