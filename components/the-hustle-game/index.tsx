@@ -3,19 +3,8 @@
 import { Canvas } from "@react-three/fiber"
 import { Suspense, useEffect, useState } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
-import dynamic from "next/dynamic"
-
-// Dynamically import the GameScene to avoid SSR issues
-const GameScene = dynamic(() => import("./game-scene").then(mod => ({ default: mod.GameScene })), {
-  ssr: false,
-  loading: () => <div>Loading 3D scene...</div>
-})
-
-// Dynamically import GameUI to avoid SSR issues
-const GameUI = dynamic(() => import("./game-ui").then(mod => ({ default: mod.GameUI })), {
-  ssr: false
-})
-
+import { GameScene } from "./game-scene"
+import { GameUI } from "./game-ui"
 import { useGameLogic } from "./use-game-logic"
 
 // Error fallback component
