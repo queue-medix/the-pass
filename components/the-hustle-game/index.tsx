@@ -13,22 +13,16 @@ function GameErrorFallback({ error, resetErrorBoundary }: { error: Error; resetE
     <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950">
       <div className="text-center p-8 bg-black/50 rounded-lg border border-purple-500 max-w-md mx-4">
         <h2 className="text-2xl font-bold text-red-400 mb-4">Game Error</h2>
-        <p className="text-purple-300 mb-4">3D rendering issue detected.</p>
+        <p className="text-purple-300 mb-4">Something went wrong loading the game.</p>
         <details className="text-left mb-4">
           <summary className="text-sm text-purple-400 cursor-pointer mb-2">Error Details</summary>
           <pre className="text-xs text-red-300 bg-black/30 p-2 rounded overflow-auto max-h-32">{error.message}</pre>
         </details>
         <button
           onClick={resetErrorBoundary}
-          className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors mr-2"
+          className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
         >
           Try Again
-        </button>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-        >
-          Reload Page
         </button>
       </div>
     </div>

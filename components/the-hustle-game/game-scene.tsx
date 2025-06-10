@@ -1,8 +1,14 @@
 "use client"
 
 import type React from "react"
-import { Environment, OrbitControls } from "@react-three/drei"
+import { Environment, SoftShadows, OrbitControls } from "@react-three/drei"
+import { GamePlatform } from "./game-platform"
+import { GameCard } from "./game-card"
+import { LightingSetup } from "./lighting-setup"
+import { ParticleSystem } from "./particle-system"
 import type { GameCard as GameCardType } from "@/lib/game-constants"
+import { GAME_CONFIG } from "@/lib/game-constants"
+import { useEffect } from "react"
 
 interface GameSceneProps {
   cards: GameCardType[]
@@ -21,80 +27,100 @@ export const GameScene: React.FC<GameSceneProps> = ({
   gameState,
   winner,
 }) => {
-  const platformSize = gridSize * 1.5 + 1
+  // Center position for the revealed card
+  const centerPosition: [number, number, number] = [0, 0, 0]
+
+  useEffect(() => {
+    console.log("GameScene rendered with:", {
+      cardsLength: cards.length,
+      gridSize,
+      gameState,
+      selectedCard: selectedCard?.id,
+    })
+  }, [cards.length, gridSize, gameState, selectedCard])
 
   return (
     <>
-      {/* Basic lighting */}
-      <ambientLight intensity={0.6} color="#ffffff" />
-      <directionalLight position={[5, 5, 5]} intensity={1} color="#ffffff" castShadow />
-      <pointLight position={[0, 5, 0]} intensity={0.5} color="#8B5CF6" />
+      {/* Ambient light - Purple tint like screenshot */}
+      <ambientLight intensity={0.3} color="#8B5CF6" />
 
-      {/* Simple platform */}
-      <mesh position={[0, 0, 0]} receiveShadow>
-        <boxGeometry args={[platformSize, 0.2, platformSize]} />
-        <meshStandardMaterial color="#4c1d95" roughness={0.3} metalness={0.7} />
-      </mesh>
+      {/* Main directional light - Warm white */}
+      <directionalLight
+        position={[10, 10, 5]}
+        intensity={1.2}
+        color="#ffffff"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+      />
 
-      {/* Simple cards */}
-      {cards.map((card) => {
-        const isSelected = card.id === selectedCard?.id
-        const cardPosition = isSelected && isAnimating ? ([0, 2, 0] as [number, number, number]) : card.position
+      {/* Fill light from the side - Purple */}
+      <directionalLight position={[-5, 5, 5]} intensity={0.6} color="#A855F7" />
 
-        return (
-          <group key={card.id} position={cardPosition}>
-            {/* Card body */}
-            <mesh castShadow receiveShadow>
-              <boxGeometry args={[0.8, 0.05, 0.8]} />
-              <meshStandardMaterial
-                color={card.isFlipped ? (card.type === "PASS" ? "#FFD700" : "#DC2626") : "#8B5CF6"}
-                roughness={0.4}
-                metalness={0.2}
-              />
-            </mesh>
+      {/* Rim light - Golden */}
+      <directionalLight position={[0, 5, -10]} intensity={0.8} color="#FFD700" />
 
-            {/* Card number/text - using simple geometry instead of Text component */}
-            {!card.isFlipped && (
-              <mesh position={[0, 0.03, 0]}>
-                <planeGeometry args={[0.3, 0.3]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
-              </mesh>
-            )}
+      {/* Point light for dramatic effect - Purple */}
+      <pointLight position={[0, 8, 0]} intensity={1.5} color="#8B5CF6" distance={20} decay={2} />
 
-            {/* Card content when flipped */}
-            {card.isFlipped && (
-              <mesh position={[0, 0.03, 0]}>
-                <planeGeometry args={[0.6, 0.4]} />
-                <meshBasicMaterial color={card.type === "PASS" ? "#1F2937" : "#FFFFFF"} transparent opacity={0.9} />
-              </mesh>
-            )}
-          </group>
-        )
-      })}
+      {/* Spot light for card highlighting - Golden */}
+      <spotLight
+        position={[0, 10, 5]}
+        intensity={2}
+        color="#FFD700"
+        angle={Math.PI / 6}
+        penumbra={0.5}
+        distance={20}
+        decay={2}
+        castShadow
+      />
 
-      {/* Particle effects for winner */}
-      {winner && selectedCard?.type === "PASS" && (
-        <group position={[0, 3, 0]}>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <mesh key={i} position={[(Math.random() - 0.5) * 4, Math.random() * 2, (Math.random() - 0.5) * 4]}>
-              <sphereGeometry args={[0.1]} />
-              <meshBasicMaterial color="#FFD700" />
-            </mesh>
-          ))}
-        </group>
+      {/* Soft shadows */}
+      <SoftShadows size={25} samples={16} focus={0.5} />
+
+      {/* Game Platform */}
+      <GamePlatform gridSize={gridSize} />
+
+      {/* Game Cards */}
+      {cards.map((card) => (
+        <GameCard
+          key={card.id}
+          card={card}
+          isSelected={card.id === selectedCard?.id}
+          isAnimating={isAnimating}
+          gameState={gameState}
+          gridSize={gridSize}
+          centerPosition={centerPosition}
+          shouldReturnToGrid={card.type !== "PASS"}
+        />
+      ))}
+
+      {/* Particle Effects - Only show when PASS is found */}
+      {winner && selectedCard?.type === "PASS" && selectedCard.isFlipped && (
+        <ParticleSystem position={[centerPosition[0], GAME_CONFIG.FLIP_HEIGHT, centerPosition[2]]} />
       )}
 
-      {/* Environment */}
+      {/* Additional lighting setup */}
+      <LightingSetup />
+
+      {/* Environment with fallback */}
       <Environment preset="night" />
 
-      {/* Camera controls */}
+      {/* Camera controls for debugging */}
       <OrbitControls
-        target={[0, 0, 0]}
+        target={GAME_CONFIG.CAMERA_TARGET}
         minPolarAngle={Math.PI / 6}
         maxPolarAngle={Math.PI / 3}
         minDistance={8}
         maxDistance={20}
         enablePan={false}
+        autoRotate={false}
+        autoRotateSpeed={0}
         enableRotate={false}
         enableZoom={true}
       />
