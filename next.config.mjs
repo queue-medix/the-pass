@@ -9,15 +9,18 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  webpack: (config, { isServer }) => {
+  experimental: {
+    esmExternals: false,
+  },
+  webpack: (config, { isServer, dev }) => {
     // Handle .glb, .gltf files
     config.module.rules.push({
       test: /\.(glb|gltf)$/,
       type: 'asset/resource',
     });
 
-    // Critical: Fix for client-side
     if (!isServer) {
+      // Aggressive fallback configuration
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -25,37 +28,57 @@ const nextConfig = {
         crypto: false,
         stream: false,
         buffer: false,
+        util: false,
+        url: false,
+        querystring: false,
       };
-      
-      // Use optimization.splitChunks to prevent multiple Three.js instances
+
+      // Force single instance of React and Three.js
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'react': 'react',
+        'react-dom': 'react-dom',
+        'three': 'three',
+        '@react-three/fiber': '@react-three/fiber',
+        '@react-three/drei': '@react-three/drei',
+      };
+
+      // Prevent multiple instances through optimization
       config.optimization = {
         ...config.optimization,
         splitChunks: {
           ...config.optimization.splitChunks,
           cacheGroups: {
             ...config.optimization.splitChunks?.cacheGroups,
-            three: {
-              test: /[\\/]node_modules[\\/](three|@react-three)[\\/]/,
-              name: 'three',
-              chunks: 'all',
-              priority: 10,
-              enforce: true,
-            },
+            default: false,
+            vendors: false,
             react: {
-              test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
               name: 'react',
               chunks: 'all',
+              test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
               priority: 20,
+              enforce: true,
+            },
+            three: {
+              name: 'three',
+              chunks: 'all',
+              test: /[\\/]node_modules[\\/](three|@react-three)[\\/]/,
+              priority: 10,
               enforce: true,
             },
           },
         },
       };
     }
-    
+
+    // Externalize problematic modules
+    config.externals.push({
+      'utf-8-validate': 'commonjs utf-8-validate',
+      'bufferutil': 'commonjs bufferutil',
+    });
+
     return config;
   },
-  // Ensure proper static optimization
   swcMinify: true,
 }
 

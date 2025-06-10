@@ -6,7 +6,6 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { GameScene } from "./game-scene"
 import { GameUI } from "./game-ui"
 import { useGameLogic } from "./use-game-logic"
-import { DebugScene } from "./debug-scene"
 
 // Error fallback component
 function GameErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
@@ -14,16 +13,22 @@ function GameErrorFallback({ error, resetErrorBoundary }: { error: Error; resetE
     <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950">
       <div className="text-center p-8 bg-black/50 rounded-lg border border-purple-500 max-w-md mx-4">
         <h2 className="text-2xl font-bold text-red-400 mb-4">Game Error</h2>
-        <p className="text-purple-300 mb-4">Something went wrong loading the game.</p>
+        <p className="text-purple-300 mb-4">3D rendering issue detected.</p>
         <details className="text-left mb-4">
           <summary className="text-sm text-purple-400 cursor-pointer mb-2">Error Details</summary>
           <pre className="text-xs text-red-300 bg-black/30 p-2 rounded overflow-auto max-h-32">{error.message}</pre>
         </details>
         <button
           onClick={resetErrorBoundary}
-          className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors mr-2"
         >
           Try Again
+        </button>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+        >
+          Reload Page
         </button>
       </div>
     </div>
@@ -45,7 +50,6 @@ function GameLoading() {
 
 export default function TheHustleGame() {
   const [mounted, setMounted] = useState(false)
-  const [debugMode, setDebugMode] = useState(false)
   const { cards, gridSize, gameState, selectedCard, isAnimating, winner, setGridSize, flipRandomCard, resetGame } =
     useGameLogic()
 
@@ -61,13 +65,6 @@ export default function TheHustleGame() {
   // Ensure component only renders on client
   useEffect(() => {
     setMounted(true)
-
-    // Enable debug mode in production to test basic Three.js functionality
-    if (typeof window !== "undefined") {
-      const isProduction = window.location.hostname !== "localhost"
-      setDebugMode(isProduction)
-      console.log("Environment:", isProduction ? "Production" : "Development")
-    }
   }, [])
 
   if (!mounted) {
@@ -77,16 +74,6 @@ export default function TheHustleGame() {
   return (
     <ErrorBoundary fallback={(error, reset) => <GameErrorFallback error={error} resetErrorBoundary={reset} />}>
       <div className="fixed inset-0 w-full h-full bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950 font-sans overflow-hidden">
-        {/* Debug toggle button */}
-        {typeof window !== "undefined" && (
-          <button
-            onClick={() => setDebugMode(!debugMode)}
-            className="absolute top-4 right-4 z-30 px-4 py-2 bg-red-600 text-white rounded text-sm"
-          >
-            {debugMode ? "Show Game" : "Debug Mode"}
-          </button>
-        )}
-
         {/* Particle Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.4),transparent_50%)]" />
@@ -117,48 +104,34 @@ export default function TheHustleGame() {
         {/* 3D Game Scene */}
         <div className="absolute inset-0 z-10">
           <Canvas
-            shadows={!debugMode}
+            shadows
             camera={{
-              position: debugMode ? [5, 5, 5] : cameraPosition,
+              position: cameraPosition,
               fov: 45,
-              near: 0.1,
-              far: 1000,
             }}
             gl={{
               antialias: true,
               alpha: false,
               powerPreference: "high-performance",
-              preserveDrawingBuffer: false,
-              failIfMajorPerformanceCaveat: false,
             }}
-            dpr={[1, Math.min(window.devicePixelRatio, 2)]}
-            onCreated={({ gl, scene, camera, size }) => {
+            dpr={[1, 2]}
+            onCreated={({ gl }) => {
               gl.setClearColor("#1a103d", 1)
-              console.log("Canvas created:", {
-                renderer: gl.info.render,
-                memory: gl.info.memory,
-                size,
-                camera: camera.position,
-                scene: scene.children.length,
-              })
+              console.log("✅ Canvas created successfully")
             }}
             onError={(error) => {
-              console.error("Canvas error:", error)
+              console.error("❌ Canvas error:", error)
             }}
           >
             <Suspense fallback={null}>
-              {debugMode ? (
-                <DebugScene />
-              ) : (
-                <GameScene
-                  cards={cards}
-                  gridSize={gridSize}
-                  selectedCard={selectedCard}
-                  isAnimating={isAnimating}
-                  gameState={gameState}
-                  winner={winner}
-                />
-              )}
+              <GameScene
+                cards={cards}
+                gridSize={gridSize}
+                selectedCard={selectedCard}
+                isAnimating={isAnimating}
+                gameState={gameState}
+                winner={winner}
+              />
             </Suspense>
           </Canvas>
         </div>
