@@ -3,8 +3,19 @@
 import { Canvas } from "@react-three/fiber"
 import { Suspense, useEffect, useState } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
-import { GameScene } from "./game-scene"
-import { GameUI } from "./game-ui"
+import dynamic from "next/dynamic"
+
+// Dynamically import the GameScene to avoid SSR issues
+const GameScene = dynamic(() => import("./game-scene").then(mod => ({ default: mod.GameScene })), {
+  ssr: false,
+  loading: () => <div>Loading 3D scene...</div>
+})
+
+// Dynamically import GameUI to avoid SSR issues
+const GameUI = dynamic(() => import("./game-ui").then(mod => ({ default: mod.GameUI })), {
+  ssr: false
+})
+
 import { useGameLogic } from "./use-game-logic"
 
 // Error fallback component
@@ -61,6 +72,20 @@ export default function TheHustleGame() {
     setMounted(true)
   }, [])
 
+ // Check WebGL support
+  useEffect(() => {
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+    
+    if (!gl) {
+      console.warn("WebGL not supported")
+      setWebGLSupported(false)
+    } else {
+      console.log("✅ WebGL is supported")
+    }
+    
+    canvas.remove()
+  }, [])
   if (!mounted) {
     return <GameLoading />
   }
