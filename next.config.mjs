@@ -23,14 +23,33 @@ const nextConfig = {
         fs: false,
         path: false,
         crypto: false,
+        stream: false,
+        buffer: false,
       };
       
-      // Ensure single instance of React
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'react': require.resolve('react'),
-        'react-dom': require.resolve('react-dom'),
-        'three': require.resolve('three'),
+      // Use optimization.splitChunks to prevent multiple Three.js instances
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          cacheGroups: {
+            ...config.optimization.splitChunks?.cacheGroups,
+            three: {
+              test: /[\\/]node_modules[\\/](three|@react-three)[\\/]/,
+              name: 'three',
+              chunks: 'all',
+              priority: 10,
+              enforce: true,
+            },
+            react: {
+              test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+              name: 'react',
+              chunks: 'all',
+              priority: 20,
+              enforce: true,
+            },
+          },
+        },
       };
     }
     
