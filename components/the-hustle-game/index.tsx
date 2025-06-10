@@ -2,27 +2,13 @@
 
 import { Canvas } from "@react-three/fiber"
 import { Suspense, useEffect, useState } from "react"
-import { ErrorBoundary } from "react-error-boundary"
-import dynamic from "next/dynamic"
-
-// Dynamically import the GameScene to avoid SSR issues
-const GameScene = dynamic(() => import("./game-scene").then(mod => ({ default: mod.GameScene })), {
-  ssr: false,
-  loading: () => <div>Loading 3D scene...</div>
-})
-
-// Dynamically import GameUI to avoid SSR issues
-const GameUI = dynamic(() => import("./game-ui").then(mod => ({ default: mod.GameUI })), {
-  ssr: false
-})
-
-// Import your game logic hook
-// const { useGameLogic } = dynamic(() => import("./use-game-logic"), { ssr: false })
+import { ErrorBoundary } from "@/components/error-boundary"
+import { GameScene } from "./game-scene"
+import { GameUI } from "./game-ui"
+import { useGameLogic } from "./use-game-logic"
 
 // Error fallback component
 function GameErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
-  console.error("Game Error:", error)
-  
   return (
     <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950">
       <div className="text-center p-8 bg-black/50 rounded-lg border border-purple-500 max-w-md mx-4">
@@ -30,10 +16,7 @@ function GameErrorFallback({ error, resetErrorBoundary }: { error: Error; resetE
         <p className="text-purple-300 mb-4">Something went wrong loading the game.</p>
         <details className="text-left mb-4">
           <summary className="text-sm text-purple-400 cursor-pointer mb-2">Error Details</summary>
-          <pre className="text-xs text-red-300 bg-black/30 p-2 rounded overflow-auto max-h-32">
-            {error.message}
-            {error.stack && <div className="mt-2 text-xs">{error.stack}</div>}
-          </pre>
+          <pre className="text-xs text-red-300 bg-black/30 p-2 rounded overflow-auto max-h-32">{error.message}</pre>
         </details>
         <button
           onClick={resetErrorBoundary}
@@ -61,90 +44,35 @@ function GameLoading() {
 
 export default function TheHustleGame() {
   const [mounted, setMounted] = useState(false)
-  const [webGLSupported, setWebGLSupported] = useState(true)
-  
-  // Temporarily mock your game logic until we fix the 3D rendering
-  const mockGameState = {
-    cards: [],
-    gridSize: 4,
-    gameState: "playing",
-    selectedCard: null,
-    isAnimating: false,
-    winner: null,
-    setGridSize: () => {},
-    flipRandomCard: () => {},
-    resetGame: () => {}
-  }
+  const { cards, gridSize, gameState, selectedCard, isAnimating, winner, setGridSize, flipRandomCard, resetGame } =
+    useGameLogic()
 
   // Set initial camera position for optimal viewing angle
   const [cameraPosition, setCameraPosition] = useState<[number, number, number]>([6, 8, 6])
 
-  // Check WebGL support
-  useEffect(() => {
-    const canvas = document.createElement('canvas')
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-    
-    if (!gl) {
-      console.warn("WebGL not supported")
-      setWebGLSupported(false)
-    } else {
-      console.log("✅ WebGL is supported")
-    }
-    
-    canvas.remove()
-  }, [])
-
   // Adjust camera position based on grid size
   useEffect(() => {
-    const distance = 6 + mockGameState.gridSize * 0.3
+    const distance = 6 + gridSize * 0.3
     setCameraPosition([distance, distance * 1.2, distance])
-  }, [mockGameState.gridSize])
+  }, [gridSize])
 
   // Ensure component only renders on client
   useEffect(() => {
     setMounted(true)
-    
-    // Debug logging
-    console.log("Environment:", {
-      isClient: typeof window !== 'undefined',
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-      webGLSupported,
-    })
-  }, [webGLSupported])
+  }, [])
 
-  // Don't render until mounted (prevents SSR issues)
   if (!mounted) {
     return <GameLoading />
   }
 
-  // Show error if WebGL is not supported
-  if (!webGLSupported) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950">
-        <div className="text-center p-8 bg-black/50 rounded-lg border border-red-500 max-w-md mx-4">
-          <h2 className="text-2xl font-bold text-red-400 mb-4">WebGL Not Supported</h2>
-          <p className="text-purple-300 mb-4">Your browser doesn't support WebGL, which is required for 3D graphics.</p>
-          <p className="text-sm text-purple-400">Please try using a modern browser like Chrome, Firefox, or Safari.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <ErrorBoundary 
-      fallbackRender={({ error, resetErrorBoundary }) => 
-        <GameErrorFallback error={error} resetErrorBoundary={resetErrorBoundary} />
-      }
-      onError={(error, errorInfo) => {
-        console.error("React Error Boundary caught an error:", error, errorInfo)
-      }}
-    >
+    <ErrorBoundary fallback={(error, reset) => <GameErrorFallback error={error} resetErrorBoundary={reset} />}>
       <div className="fixed inset-0 w-full h-full bg-gradient-to-b from-purple-900 via-purple-800 to-purple-950 font-sans overflow-hidden">
         {/* Particle Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(168,85,247,0.4),transparent_50%)]" />
           {/* Floating coins/particles - Only show when PASS is found */}
-          {mockGameState.winner &&
+          {winner &&
             Array.from({ length: 20 }).map((_, i) => (
               <div
                 key={i}
@@ -179,57 +107,35 @@ export default function TheHustleGame() {
               antialias: true,
               alpha: false,
               powerPreference: "high-performance",
-              failIfMajorPerformanceCaveat: false, // Allow fallback to software rendering
             }}
             dpr={[1, 2]}
-            onCreated={({ gl, camera, scene }) => {
-              console.log("✅ Canvas created successfully")
-              console.log("WebGL Context:", gl.getContext())
-              console.log("Renderer info:", gl.info)
+            onCreated={({ gl }) => {
               gl.setClearColor("#1a103d", 1)
-            }}
-            onError={(error) => {
-              console.error("❌ Canvas creation error:", error)
             }}
           >
             <Suspense fallback={null}>
-              {/* Simple fallback scene for testing */}
-              <ambientLight intensity={0.5} />
-              <directionalLight position={[5, 5, 5]} intensity={1} />
-              <mesh position={[0, 0, 0]}>
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial color="#8B5CF6" />
-              </mesh>
-              
-              {/* Your actual GameScene component - uncomment when ready */}
-             <GameScene
-                cards={mockGameState.cards}
-                gridSize={mockGameState.gridSize}
-                selectedCard={mockGameState.selectedCard}
-                isAnimating={mockGameState.isAnimating}
-                gameState={mockGameState.gameState}
-                winner={mockGameState.winner}
-              /> 
+              <GameScene
+                cards={cards}
+                gridSize={gridSize}
+                selectedCard={selectedCard}
+                isAnimating={isAnimating}
+                gameState={gameState}
+                winner={winner}
+              />
             </Suspense>
           </Canvas>
         </Suspense>
 
-        {/* Game UI - Uncomment when ready */}
-         <GameUI
-          gameState={mockGameState.gameState}
-          gridSize={mockGameState.gridSize}
-          winner={mockGameState.winner}
-          isAnimating={mockGameState.isAnimating}
-          onFlip={mockGameState.flipRandomCard}
-          onReset={mockGameState.resetGame}
-          onGridSizeChange={mockGameState.setGridSize}
-        /> 
-        
-        {/* Debug info */}
-        <div className="absolute bottom-4 left-4 bg-black/50 p-2 rounded text-white text-xs">
-          <div>Mounted: ✅</div>
-          <div>WebGL: {webGLSupported ? '✅' : '❌'}</div>
-        </div>
+        {/* Game UI */}
+        <GameUI
+          gameState={gameState}
+          gridSize={gridSize}
+          winner={winner}
+          isAnimating={isAnimating}
+          onFlip={flipRandomCard}
+          onReset={resetGame}
+          onGridSizeChange={setGridSize}
+        />
       </div>
     </ErrorBoundary>
   )
